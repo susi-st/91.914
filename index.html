@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9上3-1.3作業系統課後總複習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --macaron-pink: #FFB7B2;
+            --macaron-orange: #FFDAC1;
+            --macaron-yellow: #FFF9B1;
+            --macaron-green: #B5EAD7;
+            --macaron-blue: #C7CEEA;
+            --macaron-purple: #E0BBE4;
+            --macaron-mint: #E2F0CB;
+        }
+
+        body {
+            font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+            background-color: #fce7f3;
+            overflow-x: hidden;
+        }
+
+        .main-card {
+            max-width: 1000px;
+            min-height: 85vh;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(236, 72, 153, 0.1);
+        }
+
+        .macaron-btn {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: grab;
+        }
+
+        .macaron-btn:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .slot {
+            transition: all 0.3s ease;
+            min-height: 4.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            background: white;
+            border: 2px dashed rgba(0, 0, 0, 0.08);
+            font-weight: bold;
+            position: relative;
+        }
+
+        .slot.drag-over {
+            background: rgba(244, 114, 182, 0.05);
+            border-color: #ec4899;
+        }
+
+        /* 圖片上傳框樣式 */
+        .upload-box {
+            aspect-ratio: 16 / 10;
+            border: 2px dashed rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+            position: relative;
+            outline: none;
+        }
+        .upload-box:hover, .upload-box:focus { border-color: var(--macaron-pink); background-color: #fff9fa; }
+        .upload-box img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .upload-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); color: white; text-align: center; font-size: 0.8rem; padding: 4px; pointer-events: none; }
+
+        /* 顏色類別 */
+        .color-0 { background-color: var(--macaron-pink); }
+        .color-1 { background-color: var(--macaron-orange); }
+        .color-2 { background-color: var(--macaron-yellow); }
+        .color-3 { background-color: var(--macaron-green); }
+        .color-4 { background-color: var(--macaron-blue); }
+        .color-5 { background-color: var(--macaron-purple); }
+        .color-6 { background-color: var(--macaron-mint); }
+        
+        .depth-0 { background-color: #6366f1; color: white; }
+        .depth-1 { background-color: #818cf8; color: white; }
+        .depth-2 { background-color: #a5b4fc; color: #1e1b4b; }
+        .depth-3 { background-color: #fbbf24; color: #78350f; }
+
+        .fixed-block { background-color: #f3f4f6; border: 2px solid #e5e7eb; }
+
+        .correct-hint { border: 6px solid #4ade80 !important; }
+        .error-hint { border: 6px solid #f87171 !important; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.4s ease;
+            background-color: white;
+            border: 2px solid #e5e7eb;
+            color: #9ca3af;
+        }
+        .progress-circle.passed {
+            background-color: #22c55e;
+            border-color: #22c55e;
+            color: white;
+            box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
+        }
+
+        #pw-input {
+            letter-spacing: 0.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-app" class="main-card bg-white w-full flex flex-col relative overflow-hidden">
+        
+        <!-- 上方標題列 -->
+        <header class="p-6 md:p-8 flex flex-wrap gap-4 justify-between items-center bg-pink-50/50">
+            <div class="flex flex-col">
+                <div class="flex items-center flex-wrap gap-4">
+                    <h1 class="text-2xl md:text-3xl font-bold text-pink-500 text-balance">✨ 作業系統課後總複習</h1>
+                    <div id="status-indicators" class="flex gap-2 ml-2">
+                        <!-- 燈號 JS 動態生成 -->
+                    </div>
+                </div>
+                <p class="text-gray-400 text-sm mt-1">作答進度: <span id="progress-text" class="font-bold text-indigo-400"></span></p>
+            </div>
+            
+            <div id="timer" class="text-xl font-bold text-gray-600 bg-white px-4 py-1 rounded-full shadow-sm">00:00</div>
+        </header>
+
+        <!-- 主內容區 -->
+        <main id="question-container" class="flex-grow p-6 md:p-10 overflow-y-auto">
+            <!-- 題目由 JS 注入 -->
+        </main>
+
+        <!-- 下方導覽列 -->
+        <footer class="p-6 md:p-8 bg-gray-50 flex flex-wrap gap-4 justify-between items-center relative z-[200]">
+            <button id="prev-btn" class="px-6 py-2 rounded-full border-2 border-pink-200 text-pink-400 font-bold hover:bg-pink-100 disabled:opacity-30 transition-all">
+                上一題
+            </button>
+            
+            <div class="flex items-center gap-4">
+                <!-- 此版本隱藏略過按鈕 -->
+                <button id="skip-btn" class="px-8 py-3 bg-emerald-400 text-white rounded-full font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-500 transition-all active:scale-95 hidden">
+                    略過
+                </button>
+                <button id="check-btn" class="px-8 py-3 bg-pink-500 text-white rounded-full font-bold shadow-lg shadow-pink-200 hover:bg-pink-600 transition-all active:scale-95">
+                    檢查答案
+                </button>
+                <button id="next-btn" class="px-6 py-2 rounded-full bg-indigo-400 text-white font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-100 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed">
+                    下一題
+                </button>
+            </div>
+        </footer>
+
+        <!-- 自定義提醒彈窗 -->
+        <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[300] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-90 transition-transform duration-300" id="modal-content">
+                <div class="text-4xl mb-4 text-center">💡</div>
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 text-center mb-2">溫馨提醒</h3>
+                <p id="modal-message" class="text-gray-600 text-center mb-6 leading-relaxed"></p>
+                <div class="flex gap-4 justify-center">
+                    <button onclick="closeModal()" class="px-6 py-2 border-2 border-gray-200 text-gray-400 font-bold rounded-full hover:bg-gray-50 transition-all active:scale-95">
+                        返回
+                    </button>
+                    <button id="modal-confirm-btn" class="px-6 py-2 bg-indigo-500 text-white font-bold rounded-full hover:bg-indigo-600 transition-all active:scale-95 shadow-lg shadow-indigo-100">
+                        前往下一題
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 密碼輸入彈窗 -->
+        <div id="pw-modal-overlay" class="fixed inset-0 bg-black/60 z-[400] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-90 transition-transform duration-300" id="pw-modal-content">
+                <div class="text-4xl mb-4 text-center">🔒</div>
+                <h3 class="text-xl font-bold text-gray-800 text-center mb-4">請輸入進入密碼</h3>
+                <input type="password" id="pw-input" placeholder="•••••••" class="w-full p-4 border-2 border-pink-100 rounded-2xl mb-6 focus:border-pink-300 outline-none transition-all">
+                <div class="flex gap-4 justify-center">
+                    <button onclick="closePwModal()" class="px-6 py-2 border-2 border-gray-200 text-gray-400 font-bold rounded-full hover:bg-gray-50 transition-all active:scale-95">
+                        取消
+                    </button>
+                    <button id="pw-confirm-btn" class="px-8 py-2 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition-all active:scale-95 shadow-lg">
+                        確認進入
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結算頁面 Overlay -->
+        <div id="result-overlay" class="absolute inset-0 bg-white z-[500] flex flex-col items-center justify-center p-6 md:p-10 hidden fade-in overflow-y-auto">
+            <div class="border-4 border-pink-200 rounded-3xl p-8 max-w-3xl w-full bg-white shadow-xl my-8">
+                <h2 class="text-3xl font-bold text-pink-500 mb-4 text-center text-balance">📝 作答結果</h2>
+                
+                <div class="text-center mb-4"><span class="text-sm font-bold text-gray-400">【 實作畫面複查 】</span></div>
+                <div id="summary-screenshots" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 text-center">
+                </div>
+
+                <div id="final-stats" class="space-y-4 mb-8"></div>
+
+                <div class="bg-indigo-50 p-6 rounded-2xl mb-8 text-center border border-indigo-100">
+                    <div id="quote-zh" class="text-xl font-bold text-indigo-600 mb-3 text-balance"></div>
+                    <div id="quote-en" class="text-base italic text-indigo-400 leading-relaxed text-balance"></div>
+                </div>
+
+                <div class="flex justify-center">
+                    <button onclick="restartQuiz()" class="px-12 py-4 bg-pink-500 text-white rounded-full text-xl font-bold shadow-xl hover:bg-pink-600 transition-all active:scale-95">
+                        重新作答測驗題
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full bg-gray-800 text-white font-bold opacity-0 transition-opacity pointer-events-none z-[600] text-xl shadow-lg"></div>
+
+    <script>
+        const quizData = [
+            {
+                type: 'image_upload',
+                question: "請完成以下四項作業系統實作，並於對應區塊上傳或貼上截圖：",
+                labels: ["磁碟最佳化", "移除程式", "自動更新Update", "開啟防火牆"]
+            },
+            {
+                type: 'drag_and_drop',
+                question: "「作業系統」如同電腦的管家，不只要協調電腦硬體與 [__] 之間的 [__]，也是電腦與 [__] 之間的 [__]。",
+                blanks: ["軟體", "資源分配", "使用者", "溝通介面"],
+                options: ["軟體", "資源分配", "使用者", "溝通介面"] 
+            },
+            {
+                type: 'matching_fixed',
+                question: "請根據下方的角色說明，補齊中間漏掉的空格：",
+                options: ["應用軟體", "作業系統"],
+                steps: [
+                    { type: 'fixed', name: "使用者", desc: "你/我/他(她)" },
+                    { type: 'slot', answer: "應用軟體", desc: "使用者最常操作的軟體(少了它，手機就不好玩了)" },
+                    { type: 'slot', answer: "作業系統", desc: "居中協調軟硬體資源與工作的軟體(少了它，只能玩開關機)" },
+                    { type: 'fixed', name: "硬體", desc: "電腦/手機/平板" }
+                ]
+            },
+            {
+                type: 'matching_list',
+                question: "請將下方的四種程式或軟體進行正確的分類：",
+                options: ["Windows10", "磁碟清理工具", "編譯程式", "簡報軟體"],
+                items: [
+                    { label: "系統軟體─作業系統", answer: "Windows10" },
+                    { label: "系統軟體─系統工具程式", answer: "磁碟清理工具" },
+                    { label: "系統軟體─軟體開發工具", answer: "編譯程式" },
+                    { label: "應用軟體", answer: "簡報軟體" }
+                ]
+            },
+            {
+                type: 'matching_list',
+                question: "請將下方的三種作業系統與它的特色進行搭配：",
+                options: ["Windows", "macOS", "Linux"],
+                items: [
+                    { label: "架構較開放，市佔率最高", answer: "Windows" },
+                    { label: "軟硬體環境較封閉，強調美學設計", answer: "macOS" },
+                    { label: "自由軟體、開放原始碼", answer: "Linux" }
+                ]
+            },
+            {
+                type: 'matching_list',
+                question: "請針對作業系統版本與各階段的介面功能進行配對：",
+                options: ["MS-DOS", "Windows95", "Windows10", "語音助理"],
+                items: [
+                    { label: "命令行介面 (16bits)", answer: "MS-DOS" },
+                    { label: "圖形使用者介面 (16/32bits)", answer: "Windows95" },
+                    { label: "圖形使用者介面 (64bits)", answer: "Windows10" },
+                    { label: "新一代作業系統添加的功能", answer: "語音助理" }
+                ]
+            }
+        ];
+
+        const inspirationalQuotes = [
+            { en: "Genius is one percent inspiration and ninety-nine percent perspiration.", zh: "天才就是百分之一的靈感加上百分之九十九的汗水。 — 愛迪生" },
+            { en: "Success is not final, failure is not fatal.", zh: "成功不是終點，失敗也不是終結：唯有勇敢前行的勇氣才是最重要的。 — 邱吉爾" },
+            { en: "Believe you can and you're halfway there.", zh: "相信你自己能做到，你就已經成功了一半。 — 羅斯福" },
+            { en: "Stay hungry, stay foolish.", zh: "求知若渴，虛心若愚。 — 賈伯斯" },
+            { en: "Imagination is more important than knowledge.", zh: "想像力比知識更重要。 — 愛因斯坦" },
+            { en: "Everything has beauty, but not everyone sees it.", zh: "萬物皆有美，但並非每個人都能看見。 — 孔子" },
+            { en: "Action is the foundational key to all success.", zh: "行動是所有成功的基石. — 畢卡索" },
+            { en: "The best way to predict the future is to create it.", zh: "預測未來的最佳方式就是去創造它. — 彼得·杜拉克" }
+        ];
+
+        const SECRET_PASS = "3939889";
+        let currentIdx = 0;
+        let userStates = {};
+        let quizCheckedStatus = {}; 
+        let quizPassedStatus = {}; 
+        let totalAttempts = 0; 
+        let quizAttemptCount = 1; 
+        let startTime = Date.now();
+        let timerInterval = null;
+        let isTimerStarted = false; 
+
+        window.onload = () => {
+            initIndicators();
+            renderQuestion();
+            setupGlobalEvents();
+        };
+
+        function initIndicators() {
+            const container = document.getElementById('status-indicators');
+            container.innerHTML = quizData.map((_, i) => `<div class="progress-circle" data-idx="${i}">${i+1}</div>`).join('');
+        }
+
+        function setupGlobalEvents() {
+            document.getElementById('next-btn').onclick = () => navigate(1);
+            document.getElementById('prev-btn').onclick = () => navigate(-1);
+            document.getElementById('check-btn').onclick = checkAnswer;
+            // skip-btn 事件保留，但 UI 被隱藏
+            document.getElementById('skip-btn').onclick = skipFirstQuestion; 
+            document.getElementById('pw-confirm-btn').onclick = verifyPassword;
+            document.getElementById('pw-input').onkeypress = (e) => { if(e.key === 'Enter') verifyPassword(); };
+        }
+
+        function startTimer() {
+            if (isTimerStarted) return;
+            isTimerStarted = true;
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const secs = String(elapsed % 60).padStart(2, '0');
+                const timerEl = document.getElementById('timer');
+                if (timerEl) timerEl.innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function showCustomModal(title, message, confirmText, onConfirm) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            const btn = document.getElementById('modal-confirm-btn');
+            btn.innerText = confirmText;
+            btn.onclick = () => { closeModal(); if (onConfirm) onConfirm(); };
+            overlay.classList.remove('hidden');
+            setTimeout(() => { overlay.classList.remove('opacity-0'); content.classList.remove('scale-90'); }, 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            overlay.classList.add('opacity-0'); content.classList.add('scale-90');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        function showPwModal(callback) {
+            const overlay = document.getElementById('pw-modal-overlay');
+            const content = document.getElementById('pw-modal-content');
+            const input = document.getElementById('pw-input');
+            input.value = "";
+            window.pwCallback = callback;
+            overlay.classList.remove('hidden');
+            setTimeout(() => { overlay.classList.remove('opacity-0'); content.classList.remove('scale-90'); input.focus(); }, 10);
+        }
+
+        function closePwModal() {
+            const overlay = document.getElementById('pw-modal-overlay');
+            const content = document.getElementById('pw-modal-content');
+            overlay.classList.add('opacity-0'); content.classList.add('scale-90');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('pw-input').value;
+            if (input === SECRET_PASS) { 
+                closePwModal(); 
+                if(window.pwCallback) {
+                    window.pwCallback(); 
+                    startTimer(); 
+                }
+            } else {
+                showToast("密碼錯誤，請重新輸入喔！", "error");
+                document.getElementById('pw-input').value = "";
+            }
+        }
+
+        function renderQuestion() {
+            const container = document.getElementById('question-container');
+            const q = quizData[currentIdx];
+            const progressEl = document.getElementById('progress-text');
+            const nextBtn = document.getElementById('next-btn');
+            const skipBtn = document.getElementById('skip-btn');
+
+            if (progressEl) progressEl.innerText = `${currentIdx + 1} / ${quizData.length}`;
+            document.getElementById('prev-btn').disabled = (currentIdx === 0);
+            nextBtn.innerText = (currentIdx === quizData.length - 1) ? "查看結果" : "下一題";
+            
+            // 修正：必須答對第一題（通過檢查）才能按下一題
+            nextBtn.disabled = (currentIdx === 0 && !quizPassedStatus[0]);
+
+            // 此版本始終隱藏略過按鈕
+            skipBtn.classList.add('hidden');
+
+            container.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'fade-in';
+
+            if (q.type === 'image_upload') renderImageUpload(q, wrapper);
+            else if (q.type === 'drag_and_drop') renderDragAndDrop(q, wrapper);
+            else if (q.type === 'matching_fixed') renderMatchingFixed(q, wrapper);
+            else if (q.type === 'matching_list') renderMatchingList(q, wrapper);
+
+            container.appendChild(wrapper);
+            restoreCurrentQuestionState();
+            updateProgressIndicators();
+        }
+
+        function renderImageUpload(q, wrapper) {
+            const title = document.createElement('h3');
+            title.className = "text-3xl text-gray-700 font-bold mb-6 text-balance text-center";
+            title.innerText = q.question;
+            wrapper.appendChild(title);
+            
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto pb-6";
+            
+            const bgColors = ['bg-rose-50', 'bg-orange-50', 'bg-emerald-50', 'bg-indigo-50'];
+            const borderColors = ['border-rose-200', 'border-orange-200', 'border-emerald-200', 'border-indigo-200'];
+            const textColors = ['text-rose-500', 'text-orange-500', 'text-emerald-500', 'text-indigo-500'];
+
+            q.labels.forEach((label, i) => {
+                const itemBox = document.createElement('div');
+                itemBox.className = `${bgColors[i]} ${borderColors[i]} border-2 pt-3 pb-5 px-6 rounded-[40px] flex flex-col gap-2 shadow-sm transition-all hover:shadow-md`;
+                
+                const labelTitle = document.createElement('div');
+                labelTitle.className = `${textColors[i]} text-2xl font-black text-center tracking-wide`;
+                labelTitle.innerText = label;
+
+                const box = document.createElement('div');
+                box.className = "upload-box"; 
+                box.id = `upload-${i}`;
+                box.contentEditable = "true";
+                box.innerHTML = `<div class="flex flex-col items-center p-4"><span class="text-gray-400 font-bold">點擊上傳或右鍵貼上截圖</span></div>`;
+                
+                box.onclick = (e) => { if (e.target === box || box.contains(e.target)) { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = (ev) => handleImage(ev.target.files[0], box, i); input.click(); } };
+                box.onkeydown = (e) => { if (!(e.ctrlKey && e.key === 'v') && !(e.metaKey && e.key === 'v')) e.preventDefault(); };
+                box.onpaste = (e) => { e.preventDefault(); const items = (e.clipboardData || e.originalEvent.clipboardData).items; for (let index in items) { const item = items[index]; if (item.kind === 'file' && item.type.indexOf("image") !== -1) handleImage(item.getAsFile(), box, i); } };
+                
+                itemBox.appendChild(labelTitle);
+                itemBox.appendChild(box);
+                grid.appendChild(itemBox);
+            });
+            wrapper.appendChild(grid);
+        }
+
+        function skipFirstQuestion() {
+            // 此版本不執行略過
+            return;
+        }
+
+        function handleImage(file, box, index) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => { 
+                box.innerHTML = `<img src="${e.target.result}" alt="screenshot"><div class="upload-label">${quizData[0].labels[index]}</div>`; 
+                saveCurrentQuestionState(); 
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderDragAndDrop(q, wrapper) {
+            const title = document.createElement('h3');
+            title.className = "text-2xl text-gray-700 font-bold mb-8 leading-relaxed text-balance";
+            const parts = q.question.split('[__]');
+            parts.forEach((part, i) => {
+                const textSpan = document.createElement('span'); textSpan.innerText = part; title.appendChild(textSpan);
+                if (i < parts.length - 1) {
+                    const slot = createSlot(i, q.blanks[i]);
+                    slot.style.minWidth = `${q.blanks[i].length * 2.2 + 4}rem`;
+                    slot.classList.add('text-2xl', 'text-center');
+                    title.appendChild(slot);
+                }
+            });
+            wrapper.appendChild(title);
+            renderSourceArea(q.options, wrapper);
+        }
+
+        function renderMatchingFixed(q, wrapper) {
+            const title = document.createElement('h3'); title.className = "text-2xl text-gray-700 font-bold mb-10 text-center text-balance";
+            title.innerText = q.question; wrapper.appendChild(title);
+            const flow = document.createElement('div'); flow.className = "grid grid-cols-1 md:grid-cols-4 gap-4 items-start";
+            q.steps.forEach((step, idx) => {
+                const item = document.createElement('div'); item.className = "flex flex-col items-center text-center";
+                const desc = document.createElement('p'); desc.className = "text-xl text-gray-600 mb-4 h-20 flex items-center justify-center px-2 font-bold leading-tight text-balance";
+                desc.innerText = step.desc; item.appendChild(desc);
+                if (step.type === 'fixed') {
+                    const fixed = document.createElement('div'); fixed.className = "fixed-block w-full py-5 rounded-xl font-bold text-gray-500 shadow-sm text-2xl bg-gray-50";
+                    fixed.innerText = step.name; item.appendChild(fixed);
+                } else {
+                    const slot = createSlot(idx, step.answer); slot.className += " w-full rounded-xl py-6 border-2 text-3xl text-center bg-white";
+                    item.appendChild(slot);
+                }
+                flow.appendChild(item);
+            });
+            wrapper.appendChild(flow);
+            renderSourceArea(q.options, wrapper);
+        }
+
+        function renderMatchingList(q, wrapper) {
+            const title = document.createElement('h3'); 
+            title.className = "text-2xl text-gray-700 font-bold mb-10 text-center text-balance";
+            title.innerText = q.question; 
+            wrapper.appendChild(title);
+            
+            const list = document.createElement('div'); 
+            list.className = "grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto";
+            
+            let displayItems = q.items.map((item, originalIdx) => ({ ...item, originalIdx }));
+            if (currentIdx >= 3 && currentIdx <= 5) {
+                displayItems.sort(() => Math.random() - 0.5);
+            }
+
+            const itemColors = [];
+            displayItems.forEach((item, loopIdx) => {
+                const itemBox = document.createElement('div');
+                let colorClass = "";
+                
+                if (currentIdx === 3) {
+                    if (item.label.includes("應用軟體")) {
+                        const warmColors = ["color-0", "color-1", "color-2"];
+                        colorClass = warmColors[loopIdx % warmColors.length];
+                    } else {
+                        const coolColors = ["color-3", "color-4", "color-5", "color-6"];
+                        colorClass = coolColors[loopIdx % coolColors.length];
+                    }
+                } else {
+                    colorClass = `color-${(item.originalIdx + currentIdx) % 7}`;
+                }
+
+                itemBox.className = `${colorClass} p-6 pt-3 pb-4 rounded-3xl border-2 border-white shadow-sm flex flex-col gap-2 transition-all hover:scale-[1.02]`;
+                itemColors.push(colorClass.replace("color-", ""));
+
+                const label = document.createElement('div'); 
+                label.className = "text-2xl font-black tracking-wider text-center drop-shadow-sm text-balance";
+                label.innerText = item.label; 
+                itemBox.appendChild(label);
+
+                const slot = createSlot(item.originalIdx, item.answer); 
+                slot.className += ` w-full rounded-2xl py-6 border-2 dashed text-3xl text-center text-gray-700 bg-white/90`;
+                itemBox.appendChild(slot); 
+                list.appendChild(itemBox);
+            });
+
+            wrapper.appendChild(list);
+            renderSourceArea(q.options, wrapper, itemColors);
+        }
+
+        function createSlot(index, answer) {
+            const slot = document.createElement('div');
+            slot.className = `slot border-b-2 border-gray-300 mx-2 rounded-lg align-bottom`;
+            slot.dataset.type = "slot"; slot.dataset.index = index; slot.dataset.answer = answer;
+            slot.ondragover = (e) => allowDrop(e, slot);
+            slot.ondragleave = () => slot.classList.remove('drag-over');
+            slot.ondrop = (e) => handleDrop(e, slot);
+            return slot;
+        }
+
+        function renderSourceArea(options, wrapper, excludeColors = []) {
+            const sourceArea = document.createElement('div');
+            sourceArea.className = "mt-16 p-8 bg-pink-50/30 rounded-3xl border-2 border-dashed border-pink-100 flex flex-wrap justify-center gap-6 min-h-[120px]";
+            sourceArea.id = "source-area"; sourceArea.dataset.type = "source";
+            sourceArea.ondragover = (e) => allowDrop(e, sourceArea);
+            sourceArea.ondrop = (e) => handleDrop(e, sourceArea);
+            const shuffled = [...options].sort(() => Math.random() - 0.5);
+            let colorPool = [0, 1, 2, 3, 4, 5, 6].sort(() => Math.random() - 0.5);
+            shuffled.forEach((opt, idx) => {
+                const currentPool = colorPool.filter(c => !excludeColors.includes(String(c)));
+                const finalPool = currentPool.length > 0 ? currentPool : colorPool;
+                const colorIdx = finalPool[idx % finalPool.length];
+                sourceArea.appendChild(createDragElement(opt, idx, colorIdx));
+            });
+            wrapper.appendChild(sourceArea);
+        }
+
+        function createDragElement(text, idSuffix, colorIdx) {
+            const el = document.createElement('div');
+            el.className = `macaron-btn color-${colorIdx} px-8 py-3 rounded-2xl shadow-md font-bold text-gray-700 border-2 border-white/50 text-2xl whitespace-nowrap z-10`;
+            el.innerText = text; el.id = `opt-${currentIdx}-${idSuffix}-${Math.random().toString(36).substr(2, 5)}`;
+            el.draggable = true; el.dataset.value = text;
+            el.ondragstart = (e) => { e.dataTransfer.setData("text/plain", el.id); e.target.style.opacity = "0.5"; };
+            el.ondragend = (e) => { e.target.style.opacity = "1"; };
+            return el;
+        }
+
+        function allowDrop(e, target) { e.preventDefault(); target.classList.add('drag-over'); }
+
+        function handleDrop(e, target) {
+            e.preventDefault(); target.classList.remove('drag-over');
+            const elId = e.dataTransfer.getData("text/plain"); const el = document.getElementById(elId);
+            if (!el) return;
+            if (target.dataset.type === "slot") {
+                const existing = target.querySelector('.macaron-btn');
+                if (existing) document.getElementById('source-area').appendChild(existing);
+                target.appendChild(el);
+            } else if (target.dataset.type === "source") { target.appendChild(el); }
+            saveCurrentQuestionState();
+        }
+
+        function saveCurrentQuestionState() {
+            const q = quizData[currentIdx];
+            const state = { values: {} };
+            if (q.type === 'image_upload') {
+                document.querySelectorAll('.upload-box').forEach((box, i) => { const img = box.querySelector('img'); if (img) state.values[i] = { val: img.src }; });
+            } else {
+                document.querySelectorAll('.slot').forEach(slot => { const item = slot.querySelector('.macaron-btn'); if (item) state.values[slot.dataset.index] = { elId: item.id, val: item.dataset.value }; });
+            }
+            userStates[currentIdx] = state;
+        }
+
+        function restoreCurrentQuestionState() {
+            const state = userStates[currentIdx]; if (!state) return;
+            const q = quizData[currentIdx];
+            if (q.type === 'image_upload') {
+                Object.keys(state.values).forEach(idx => { const box = document.getElementById(`upload-${idx}`); if (box) box.innerHTML = `<img src="${state.values[idx].val}" alt="screenshot"><div class="upload-label">${q.labels[idx]}</div>`; });
+            } else {
+                Object.keys(state.values).forEach(slotIdx => { const elId = state.values[slotIdx].elId; const el = document.getElementById(elId); const slot = document.querySelector(`.slot[data-index="${slotIdx}"]`); if (el && slot) slot.appendChild(el); });
+            }
+        }
+
+        function navigate(dir) {
+            saveCurrentQuestionState();
+            if (currentIdx === 0 && dir === 1) { showPwModal(() => performNavigation(dir)); return; }
+            if (dir > 0 && !quizCheckedStatus[currentIdx]) {
+                if (currentIdx + dir < quizData.length) { 
+                    showCustomModal("溫馨提醒", "待會要記得回來按下檢查答案喔！", "前往下一題", () => performNavigation(dir)); 
+                    return; 
+                } else { 
+                    const unchecked = []; for (let i = 0; i < quizData.length; i++) if (!quizCheckedStatus[i]) unchecked.push(i + 1); 
+                    if (unchecked.length > 0) { showCustomModal("溫馨提醒", `第 ${unchecked.join('、')} 題忘記檢查囉！`, "查看結果", () => performNavigation(dir)); return; } 
+                }
+            }
+            performNavigation(dir);
+        }
+
+        function performNavigation(dir) {
+            if (currentIdx + dir >= quizData.length) { showFinalSummary(); return; }
+            currentIdx += dir; renderQuestion();
+        }
+
+        function checkAnswer() {
+            quizCheckedStatus[currentIdx] = true; 
+            totalAttempts++; 
+            const q = quizData[currentIdx];
+            let errors = 0; let incomplete = false;
+            
+            if (q.type === 'image_upload') {
+                const imgs = [];
+                document.querySelectorAll('.upload-box').forEach(box => { 
+                    const img = box.querySelector('img');
+                    if (!img) incomplete = true; else imgs.push(img.src);
+                });
+                if (!incomplete) {
+                    const uniqueImgs = new Set(imgs);
+                    if (uniqueImgs.size < imgs.length) { showToast("發現重複截圖！請更換內容喔。", "error"); return; }
+                }
+            } else {
+                document.querySelectorAll('.slot').forEach(slot => { const item = slot.querySelector('.macaron-btn'); if (!item) incomplete = true; if (item && item.dataset.value !== slot.dataset.answer) errors++; });
+            }
+
+            if (incomplete) { showToast("請將所有內容填完/貼完喔！", "error"); return; }
+            if (errors === 0) {
+                showToast("🎉 太棒了！全部正確！", "success");
+                quizPassedStatus[currentIdx] = true;
+                updateProgressIndicators();
+                if(currentIdx === 0) document.getElementById('next-btn').disabled = false;
+            } else { showToast(`還差一點點！還有 ${errors} 個錯誤喔。`, "error"); }
+        }
+
+        function updateProgressIndicators() {
+            document.querySelectorAll('.progress-circle').forEach(circle => { if (quizPassedStatus[parseInt(circle.dataset.idx)]) circle.classList.add('passed'); });
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast'); toast.innerText = msg;
+            toast.className = `fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-bold transition-all z-[600] text-xl shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-gray-800'}`;
+            toast.style.opacity = "1"; setTimeout(() => toast.style.opacity = "0", 3000);
+        }
+
+        function restartQuiz() {
+            document.getElementById('result-overlay').classList.add('hidden');
+            for (let i = 1; i < quizData.length; i++) { delete userStates[i]; delete quizCheckedStatus[i]; delete quizPassedStatus[i]; }
+            
+            quizAttemptCount++; 
+            totalAttempts = 0; isTimerStarted = false;
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('timer').innerText = "00:00";
+            document.querySelectorAll('.progress-circle').forEach(circle => { if (parseInt(circle.dataset.idx) > 0) circle.classList.remove('passed'); });
+
+            currentIdx = 1; 
+            renderQuestion();
+            startTimer(); 
+        }
+
+        function showFinalSummary() {
+            if (timerInterval) clearInterval(timerInterval);
+            saveCurrentQuestionState();
+            const screenshotArea = document.getElementById('summary-screenshots');
+            const timerText = document.getElementById('timer').innerText;
+            screenshotArea.innerHTML = '';
+            const imgState = userStates[0];
+            if (imgState && imgState.values) {
+                Object.keys(imgState.values).forEach(idx => {
+                    const label = quizData[0].labels[idx];
+                    screenshotArea.innerHTML += `<div class="flex flex-col items-center"><span class="text-xs font-bold text-gray-500 mb-1">${label}</span><div class="border rounded-lg overflow-hidden bg-gray-5 aspect-square shadow-sm w-full"><img src="${imgState.values[idx].val}" class="w-full h-full object-cover"></div></div>`;
+                });
+            }
+            let correctCount = 0; quizData.forEach((_, idx) => { if (quizPassedStatus[idx]) correctCount++; });
+            const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
+            document.getElementById('quote-zh').innerText = randomQuote.zh; document.getElementById('quote-en').innerText = randomQuote.en;
+            
+            const stats = document.getElementById('final-stats');
+            stats.innerHTML = `
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-pink-50 p-6 rounded-2xl text-center border border-pink-100 shadow-sm"><p class="text-lg text-pink-400 font-bold uppercase tracking-tight">總題數</p><p class="text-4xl font-black text-pink-600">${quizData.length}</p></div>
+                    <div class="bg-green-50 p-6 rounded-2xl text-center border border-green-100 shadow-sm"><p class="text-lg text-green-400 font-bold uppercase tracking-tight">答對題數</p><p class="text-4xl font-black text-green-600">${correctCount}</p></div>
+                </div>
+                <div class="text-center p-6 bg-white/50 rounded-2xl">
+                    <p class="text-2xl font-bold text-gray-700 mb-3 text-balance">挑戰完成！</p>
+                    <p class="text-lg text-gray-500">
+                        作答次數：<span class="text-indigo-500 font-bold">${quizAttemptCount}</span> | 
+                        測驗總用時：<span class="text-indigo-500 font-bold">${timerText}</span> | 
+                        檢查次數：<span class="text-indigo-500 font-bold">${totalAttempts}</span>
+                    </p>
+                </div>`;
+            document.getElementById('result-overlay').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
